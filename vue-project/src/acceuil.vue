@@ -19,29 +19,51 @@
           </div>
         </div>
         <div class="hero-image">
-          <div class="image-upload-container" @click="triggerFileInput">
-            <input 
-              type="file" 
-              ref="fileInput" 
-              @change="handleImageUpload" 
-              accept="image/*"
-              class="file-input"
-            />
-            <div class="image-preview" :class="{ 'has-image': imagePreview }">
-              <img v-if="imagePreview" :src="imagePreview" alt="Profile Preview" class="profile-image" />
-              <div v-else class="upload-placeholder">
-                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 5v14M5 12h14" />
+            <div class="image-upload-container">
+              <!-- Navigation Arrows -->
+              <button class="nav-arrow left-arrow" @click.stop="prevImage" aria-label="Previous image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 18l-6-6 6-6" />
                 </svg>
-                <span>{{ t('home.uploadPlaceholder') }}</span>
+              </button>
+              
+              <div class="image-content" @click="triggerFileInput">
+                <input 
+                  type="file" 
+                  ref="fileInput" 
+                  @change="handleImageUpload" 
+                  accept="image/*"
+                  class="file-input"
+                />
+                <div class="image-preview">
+                  <img :src="currentImage" alt="Profile Preview" class="profile-image" />
+                  <div class="image-overlay">
+                    <span>{{ t('home.changePhoto') }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="image-overlay">
-                <span>{{ t('home.changePhoto') }}</span>
+              
+              <button class="nav-arrow right-arrow" @click.stop="nextImage" aria-label="Next image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+              
+              <!-- Dots Indicator -->
+              <div class="dots-indicator">
+                <button 
+                  v-for="(img, index) in images" 
+                  :key="index"
+                  class="dot" 
+                  :class="{ 'active': currentImageIndex === index }"
+                  @click.stop="selectImage(index)"
+                  :aria-label="`Go to image ${index + 1}`"
+                ></button>
               </div>
+              
+              <div class="shape shape-1"></div>
+              <div class="shape shape-2"></div>
             </div>
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-          </div>
         </div>
       </div>
     </section>
@@ -50,17 +72,29 @@
 
 <script>
 import meImage from '@/assets/me.jpeg';
-import { useLanguage } from '@/composables/useLanguage'
+import { useLanguage } from '@/composables/useLanguage';
+import { onMounted, ref } from 'vue';
 
 export default {
   name: 'Acceuil',
   setup() {
-    const { t } = useLanguage()
-    return { t }
+    const { t } = useLanguage();
+    const fileInput = ref(null);
+    
+    return { 
+      t,
+      fileInput
+    };
   },
   data() {
     return {
-      imagePreview: meImage,
+      currentImageIndex: 0,
+      images: [
+        meImage,
+        'https://via.placeholder.com/600x800/f5f5f5/666666?text=Portrait+1',
+        'https://via.placeholder.com/600x800/e5e5e5/666666?text=Portrait+2',
+        'https://via.placeholder.com/600x800/d5d5d5/666666?text=Portrait+3'
+      ],
       projects: [
         {
           title: 'Application Web Moderne',
@@ -89,6 +123,18 @@ export default {
       ]
     };
   },
+  mounted() {
+    // Load saved image index from localStorage if available
+    const savedIndex = localStorage.getItem('portfolioImageIndex');
+    if (savedIndex !== null) {
+      this.currentImageIndex = parseInt(savedIndex, 10);
+    }
+  },
+  computed: {
+    currentImage() {
+      return this.images[this.currentImageIndex];
+    }
+  },
   methods: {
     triggerFileInput() {
       this.$refs.fileInput.click();
@@ -98,10 +144,28 @@ export default {
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          this.imagePreview = e.target.result;
+          // Add the new image to the images array
+          this.images.push(e.target.result);
+          this.currentImageIndex = this.images.length - 1;
+          this.saveImageIndex();
         };
         reader.readAsDataURL(file);
       }
+    },
+    nextImage() {
+      this.currentImageIndex = (this.currentImageIndex + 1) % this.images.length;
+      this.saveImageIndex();
+    },
+    prevImage() {
+      this.currentImageIndex = (this.currentImageIndex - 1 + this.images.length) % this.images.length;
+      this.saveImageIndex();
+    },
+    selectImage(index) {
+      this.currentImageIndex = index;
+      this.saveImageIndex();
+    },
+    saveImageIndex() {
+      localStorage.setItem('portfolioImageIndex', this.currentImageIndex);
     }
   }
 }
@@ -403,9 +467,11 @@ a {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  cursor: pointer;
   transform-style: preserve-3d;
   animation: float 6s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes float {
@@ -415,6 +481,13 @@ a {
 
 .file-input {
   display: none;
+}
+
+.image-content {
+  position: relative;
+  width: 90%;
+  height: 90%;
+  cursor: pointer;
 }
 
 .image-preview {
@@ -446,21 +519,95 @@ a {
   transition: transform 0.5s ease;
 }
 
-.upload-placeholder {
+/* Navigation Arrows */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  padding: 20px;
-  text-align: center;
-  color: #7a8db3;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  color: var(--primary-color);
+}
+
+.nav-arrow:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.left-arrow {
+  left: 10px;
+}
+
+.right-arrow {
+  right: 10px;
+}
+
+.dark .nav-arrow {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.dark .nav-arrow:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Dots Indicator */
+.dots-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: none;
+  padding: 0;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
+.dot:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.dot.active {
+  background-color: white;
+  transform: scale(1.2);
+}
+
+.dark .dot {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark .dot:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .dot.active {
+  background-color: white;
+}
+
 .upload-icon {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
   margin-bottom: 15px;
   stroke-width: 1.5;
   color: var(--primary-color);
@@ -482,6 +629,10 @@ a {
   color: white;
   font-weight: 500;
   font-size: 1.1rem;
+  backdrop-filter: blur(2px);
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .image-preview:hover .image-overlay {

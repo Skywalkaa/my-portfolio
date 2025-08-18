@@ -28,7 +28,7 @@ export class ContactService {
   async sendEmail(createContactDto: CreateContactDto) {
     const mailOptions = {
       from: `"${createContactDto.name}" <${createContactDto.email}>`,
-      to: 'orkhisayman@gmail.commail.com', // Your email where you want to receive messages
+      to: 'orkhisayman@gmail.com', // Your email where you want to receive messages
       subject: `[Portfolio Contact] ${createContactDto.subject}`,
       text: createContactDto.message,
       html: `
