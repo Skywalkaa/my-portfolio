@@ -5,35 +5,56 @@ services:
     build:
       context: ./vue-project
       dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
     ports:
       - "8080:80"
     depends_on:
       - backend
     restart: unless-stopped
     environment:
+      - NODE_ENV=production
       - VITE_API_URL=/api
     networks:
       - portfolio-network
+    volumes:
+      - ./vue-project/src:/app/src
+      - /app/node_modules
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
     ports:
       - "3000:3000"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Add other environment variables from your .env file here
       - MAIL_HOST=${MAIL_HOST}
       - MAIL_PORT=${MAIL_PORT}
       - MAIL_USER=${MAIL_USER}
       - MAIL_PASS=${MAIL_PASS}
       - MAIL_FROM=${MAIL_FROM}
+      - NODE_OPTIONS=--max_old_space_size=4096
+    volumes:
+      - ./backend/src:/usr/src/app/src
+      - /usr/src/app/node_modules
     networks:
       - portfolio-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   portfolio-network:
     driver: bridge
+
+volumes:
+  node_modules:
+  backend_node_modules:
