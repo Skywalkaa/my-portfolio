@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -21,7 +21,7 @@ COPY src/ src/
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Create app directory
 WORKDIR /usr/src/app
