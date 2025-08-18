@@ -2,7 +2,7 @@
 FROM node:18-alpine as build-stage
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ git
 
 # Create app directory
 WORKDIR /app
@@ -10,8 +10,10 @@ WORKDIR /app
 # Install app dependencies
 COPY package*.json ./
 
-# Clean install dependencies
-RUN npm ci
+# Clear npm cache and install dependencies
+RUN npm cache clean --force
+RUN rm -rf package-lock.json node_modules
+RUN npm install --legacy-peer-deps
 
 # Copy app source
 COPY . .
